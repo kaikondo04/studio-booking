@@ -17,6 +17,7 @@ export default function BookingForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // 1. 入力チェック
     if (!bandName || !leader) {
       alert('バンド名と代表者名は必須です！')
       return
@@ -30,6 +31,19 @@ export default function BookingForm() {
     const startDateTime = new Date(`${date}T${startTime}`).toISOString()
     const endDateTime = new Date(`${date}T${endTime}`).toISOString()
 
+    // 2. 重複チェック
+    const { data: conflicts } = await supabase
+      .from('bookings')
+      .select('*')
+      .lt('start_time', endDateTime)
+      .gt('end_time', startDateTime)
+
+    if (conflicts && conflicts.length > 0) {
+      alert('⚠️ エラー：その時間は既に予約が入っています！\n別の時間を選んでください。')
+      return
+    }
+
+    // 3. 予約登録
     const { error } = await supabase
       .from('bookings')
       .insert([
@@ -46,7 +60,11 @@ export default function BookingForm() {
       alert('エラーが発生しました: ' + error.message)
     } else {
       alert('予約しました！')
-      window.location.reload()
+      
+      // ★リロードを削除し、代わりに入力欄をリセットする
+      setBandName('')
+      setLeader('')
+      // window.location.reload() ← 削除しました
     }
   }
 

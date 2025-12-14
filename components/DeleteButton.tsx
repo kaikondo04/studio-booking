@@ -4,7 +4,6 @@ import { supabase } from '../utils/supabase'
 
 export default function DeleteButton({ id }: { id: number }) {
   const handleDelete = async () => {
-    // 削除前の確認（これがないと間違って消しちゃうので！）
     const confirmed = window.confirm('本当にこの予約を取り消しますか？')
     if (!confirmed) return
 
@@ -17,14 +16,14 @@ export default function DeleteButton({ id }: { id: number }) {
       alert('エラー: ' + error.message)
     } else {
       alert('予約を取り消しました')
-      window.location.reload() // 画面を更新
+      // window.location.reload() ← 削除しました
     }
   }
 
   return (
     <button 
       onClick={handleDelete}
-      className="text-red-500 text-sm hover:text-red-700 underline"
+      className="text-red-600 text-base font-bold hover:text-red-800 underline bg-white px-2 py-1 rounded border border-red-200"
     >
       取り消し
     </button>

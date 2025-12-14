@@ -1,6 +1,7 @@
 import { supabase } from '../utils/supabase'
 import BookingForm from '../components/BookingForm'
 import DeleteButton from '../components/DeleteButton'
+import RealtimeListener from '../components/RealtimeListener' // ←追加されました
 
 type Booking = {
   id: number
@@ -56,6 +57,9 @@ export default async function Home() {
 
   return (
     <div className="p-4 font-sans max-w-md mx-auto">
+      {/* ★ここに監視カメラを設置！ */}
+      <RealtimeListener />
+
       <h1 className="text-3xl font-bold mb-6 text-center text-black">🎸 スタジオ予約</h1>
 
       <BookingForm />
@@ -65,7 +69,6 @@ export default async function Home() {
       <div className="space-y-8">
         {Object.keys(groupedBookings).map((date) => (
           <div key={date}>
-            {/* 日付ヘッダーも濃く */}
             <h3 className="text-xl font-bold bg-black text-white px-4 py-2 rounded mb-4 inline-block">
               {date}
             </h3>
@@ -76,15 +79,12 @@ export default async function Home() {
                   
                   <div className="flex justify-between items-start pr-10">
                     <div>
-                      {/* 時間を濃い青に */}
                       <div className="text-blue-800 font-extrabold text-2xl leading-none mb-2">
                         {formatTime(booking.start_time)} <span className="text-black text-lg">〜</span> {formatTime(booking.end_time)}
                       </div>
-                      {/* バンド名を真っ黒に */}
                       <div className="font-bold text-xl text-black">
                         {booking.band_name}
                       </div>
-                      {/* 代表者を濃いグレーに */}
                       <div className="text-base text-gray-700 mt-1 font-medium">
                         代表: {booking.leader}
                       </div>

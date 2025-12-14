@@ -13,18 +13,16 @@ type Booking = {
 }
 
 export default function ScheduleTabs({ bookings }: { bookings: Booking[] }) {
-  // 1. 今日から7日分の日付を作る
-  const dates = Array.from({ length: 7 }, (_, i) => {
+  // ★ここを変更: 7日分 → 8日分（来週の同じ曜日まで表示）
+  const dates = Array.from({ length: 8 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() + i)
     return d
   })
 
-  // 2. 現在選択されているタブ（0番目＝今日）
   const [selectedIndex, setSelectedIndex] = useState(0)
   const selectedDate = dates[selectedIndex]
 
-  // 3. 選択された日の予約だけを抜き出す
   const filteredBookings = bookings.filter((booking) => {
     const bookingDate = new Date(booking.start_time)
     return (
@@ -34,7 +32,6 @@ export default function ScheduleTabs({ bookings }: { bookings: Booking[] }) {
     )
   })
 
-  // 日付の表示用フォーマット（例: 12/15(月)）
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('ja-JP', {
       month: 'numeric',
@@ -43,7 +40,6 @@ export default function ScheduleTabs({ bookings }: { bookings: Booking[] }) {
     })
   }
 
-  // YYYY/MM/DD 形式（DailyScheduleに渡す用）
   const dateString = selectedDate.toLocaleDateString('ja-JP', {
     year: 'numeric',
     month: '2-digit',
@@ -52,7 +48,6 @@ export default function ScheduleTabs({ bookings }: { bookings: Booking[] }) {
 
   return (
     <div>
-      {/* タブボタンのエリア（横スクロール可能） */}
       <div className="flex overflow-x-auto pb-4 mb-4 gap-2 no-scrollbar">
         {dates.map((date, index) => {
           const isSelected = index === selectedIndex
@@ -74,7 +69,6 @@ export default function ScheduleTabs({ bookings }: { bookings: Booking[] }) {
         })}
       </div>
 
-      {/* 選択された日の時間割を表示 */}
       <div className="animate-in fade-in duration-300">
         <DailySchedule 
           date={dateString} 

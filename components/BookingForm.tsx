@@ -31,6 +31,15 @@ export default function BookingForm() {
     const startDateTime = new Date(`${date}T${startTime}`).toISOString()
     const endDateTime = new Date(`${date}T${endTime}`).toISOString()
 
+    // ★追加: 過去の日時チェック
+    const now = new Date()
+    const startDate = new Date(startDateTime)
+
+    if (startDate < now) {
+      alert('過去の日時は予約できません！\n未来の日時を指定してください。')
+      return
+    }
+
     // 2. 重複チェック
     const { data: conflicts } = await supabase
       .from('bookings')
@@ -61,10 +70,8 @@ export default function BookingForm() {
     } else {
       alert('予約しました！')
       
-      // ★リロードを削除し、代わりに入力欄をリセットする
       setBandName('')
       setLeader('')
-      // window.location.reload() ← 削除しました
     }
   }
 
@@ -107,6 +114,7 @@ export default function BookingForm() {
           <input 
             type="date"
             value={date}
+            min={today} // ★追加: カレンダーで昨日以前を選べなくする
             onChange={(e) => setDate(e.target.value)}
             className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg bg-white text-black"
           />

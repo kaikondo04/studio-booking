@@ -1,27 +1,14 @@
 import { supabase } from '../utils/supabase'
 import BookingForm from '../components/BookingForm'
 import RealtimeListener from '../components/RealtimeListener'
-import DailySchedule from '../components/DailySchedule' // ←新しく追加
-
-type Booking = {
-  id: number
-  band_name: string
-  studio: string
-  start_time: string
-  end_time: string
-  leader: string 
-}
-
-type GroupedBookings = {
-  [date: string]: Booking[]
-}
+import ScheduleTabs from '../components/ScheduleTabs' // ← 新しい部品
 
 export const revalidate = 0
 
 export default async function Home() {
   const now = new Date().toISOString()
 
-  // 今後の予約を取得
+  // 今後の予約を全部取ってくる
   const { data: bookings, error } = await supabase
     .from('bookings')
     .select('*')
@@ -32,25 +19,6 @@ export default async function Home() {
     return <div className="p-4">エラー: {error.message}</div>
   }
 
-  // 予約を「日付ごと」にグループ分けする処理
-  const groupedBookings: GroupedBookings = {}
-  
-  // ★予約がない日も表示したい場合は、ここで工夫が必要ですが、
-  // まずは「予約がある日」を表示する形にします。
-  bookings?.forEach((booking) => {
-    const dateKey = new Date(booking.start_time).toLocaleDateString('ja-JP', {
-      month: 'numeric',
-      day: 'numeric',
-      weekday: 'short',
-      timeZone: 'Asia/Tokyo'
-    })
-
-    if (!groupedBookings[dateKey]) {
-      groupedBookings[dateKey] = []
-    }
-    groupedBookings[dateKey].push(booking)
-  })
-
   return (
     <div className="p-4 font-sans max-w-md mx-auto">
       <RealtimeListener />
@@ -59,22 +27,10 @@ export default async function Home() {
 
       <BookingForm />
 
-      <h2 className="text-2xl font-bold mb-6 border-b-2 border-gray-300 pb-2 mt-10 text-black">📅 予約スケジュール</h2>
+      <h2 className="text-2xl font-bold mb-4 border-b-2 border-gray-300 pb-2 mt-10 text-black">📅 予約スケジュール</h2>
 
-      {/* ここから新しい時間割表示 */}
-      <div className="space-y-4">
-        {Object.keys(groupedBookings).map((date) => (
-          <DailySchedule 
-            key={date} 
-            date={date} 
-            bookings={groupedBookings[date]} 
-          />
-        ))}
-      </div>
-
-      {bookings?.length === 0 && (
-        <p className="text-center text-gray-600 mt-10 text-lg font-bold">今後の予約はありません。</p>
-      )}
+      {/* ここがタブ付きのスケジュール表になりました！ */}
+      <ScheduleTabs bookings={bookings || []} />
       
       <div className="h-20"></div>
     </div>

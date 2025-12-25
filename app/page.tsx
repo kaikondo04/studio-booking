@@ -1,18 +1,18 @@
 import { supabase } from '../utils/supabase'
 import BookingForm from '../components/BookingForm'
 import RealtimeListener from '../components/RealtimeListener'
-import ScheduleTabs from '../components/ScheduleTabs' // ← 新しい部品
+import MonthCalendar from '../components/MonthCalendar' // ← ここが変わりました
 
 export const revalidate = 0
 
 export default async function Home() {
   const now = new Date().toISOString()
 
-  // 今後の予約を全部取ってくる
+  // 過去のデータも含めて全部取ってくる（カレンダーで見たいかもしれないので）
+  // ※あまりに昔のが要らなければ .gte('end_time', now) を戻してもOKです
   const { data: bookings, error } = await supabase
     .from('bookings')
     .select('*')
-    .gte('end_time', now)
     .order('start_time', { ascending: true })
 
   if (error) {
@@ -27,10 +27,10 @@ export default async function Home() {
 
       <BookingForm />
 
-      <h2 className="text-2xl font-bold mb-4 border-b-2 border-gray-300 pb-2 mt-10 text-black">📅 予約スケジュール</h2>
+      <h2 className="text-2xl font-bold mb-4 border-b-2 border-gray-300 pb-2 mt-10 text-black">📅 予約カレンダー</h2>
 
-      {/* ここがタブ付きのスケジュール表になりました！ */}
-      <ScheduleTabs bookings={bookings || []} />
+      {/* ここが新しいカレンダー部品になりました */}
+      <MonthCalendar bookings={bookings || []} />
       
       <div className="h-20"></div>
     </div>

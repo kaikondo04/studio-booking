@@ -15,8 +15,8 @@ export default function DailySchedule({ date, bookings }: { date: string, bookin
   const endHour = 22
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i)
 
-  // ★ 告知イベント（00:00開始）を探す
-  const eventBooking = bookings.find(b => {
+  // ★ 変更: find（1つ探す）から filter（全部探す）に変更
+  const eventBookings = bookings.filter(b => {
     const start = new Date(b.start_time)
     return start.getHours() === 0 && start.getMinutes() === 0
   })
@@ -81,14 +81,20 @@ export default function DailySchedule({ date, bookings }: { date: string, bookin
         {date}
       </div>
 
-      {/* ★ 告知イベントがあればここにバナー表示 */}
-      {eventBooking && (
-        <div className="bg-purple-100 border-b border-purple-200 p-3 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">INFO</span>
-            <span className="font-bold text-purple-900">{eventBooking.band_name}</span>
-          </div>
-          <DeleteButton id={eventBooking.id} />
+      {/* ★ 変更: 告知イベントを map で回して全部表示する */}
+      {eventBookings.length > 0 && (
+        <div className="bg-purple-50 border-b border-purple-100">
+          {eventBookings.map(event => (
+            <div key={event.id} className="p-2 flex justify-between items-center border-b last:border-b-0 border-purple-200/50">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">INFO</span>
+                <span className="font-bold text-purple-900 text-sm truncate">{event.band_name}</span>
+              </div>
+              <div className="flex-shrink-0 ml-2">
+                <DeleteButton id={event.id} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

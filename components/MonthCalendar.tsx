@@ -16,7 +16,6 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
 
-  // 特別なキーワード（この文字が入っていたら赤くなる）
   const specialKeywords = ['NG', 'ライブ', 'LIVE', 'メンテ', 'メンテナンス']
 
   const year = currentDate.getFullYear()
@@ -40,26 +39,23 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
     setCurrentDate(new Date(year, month + 1, 1))
   }
 
-  // ★ その日の「告知イベント」の名前を取得する
-  const getEventLabel = (date: Date) => {
-    const event = bookings.find(booking => {
+  // ★ 変更: 複数のイベント名を配列で返すように変更
+  const getEventLabels = (date: Date) => {
+    const events = bookings.filter(booking => {
       const bDate = new Date(booking.start_time)
       return (
         bDate.getFullYear() === date.getFullYear() &&
         bDate.getMonth() === date.getMonth() &&
         bDate.getDate() === date.getDate() &&
-        // 00:00開始のものは「告知」とみなす
         bDate.getHours() === 0 && bDate.getMinutes() === 0
       )
     })
-    return event ? event.band_name : null
+    return events.map(e => e.band_name) // 名前だけのリストを返す
   }
 
-  // ★ 予約の状態（通常か、特別か）を判定
   const getBookingStatus = (date: Date) => {
     const daysBookings = bookings.filter(booking => {
       const bDate = new Date(booking.start_time)
-      // 00:00開始（告知）は点の判定から除外
       if (bDate.getHours() === 0 && bDate.getMinutes() === 0) return false
 
       return (
@@ -123,25 +119,29 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
             date.toDateString() === new Date().toDateString()
 
           const status = getBookingStatus(date)
-          const eventLabel = getEventLabel(date)
+          const eventLabels = getEventLabels(date) // ★ リストを取得
 
           return (
             <button
               key={i}
               onClick={() => setSelectedDate(date)}
               className={`
-                h-14 rounded-lg flex flex-col items-center justify-start pt-1 relative transition overflow-hidden
+                h-16 rounded-lg flex flex-col items-center justify-start pt-1 relative transition overflow-hidden
                 ${isSelected ? 'bg-black text-white shadow-lg scale-105 z-10' : 'bg-white text-black hover:bg-gray-100'}
                 ${isToday && !isSelected ? 'border-2 border-blue-500' : ''}
               `}
             >
               <span className={`text-sm leading-none ${isSelected ? 'font-bold' : ''}`}>{date.getDate()}</span>
               
-              {/* イベント名があれば文字を表示、なければ点を表示 */}
-              {eventLabel ? (
-                <span className={`mt-1 text-[10px] w-full px-0.5 truncate font-bold ${isSelected ? 'text-yellow-300' : 'text-purple-600'}`}>
-                  {eventLabel}
-                </span>
+              {/* ★ 変更: 複数のイベントがある場合、mapで回して全部表示 */}
+              {eventLabels.length > 0 ? (
+                <div className="flex flex-col w-full px-0.5 mt-0.5 gap-0.5">
+                  {eventLabels.map((label, idx) => (
+                    <span key={idx} className={`text-[9px] leading-tight truncate font-bold rounded px-0.5 ${isSelected ? 'text-yellow-300' : 'bg-purple-100 text-purple-700'}`}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
               ) : (
                 <>
                   {status === 'normal' && (

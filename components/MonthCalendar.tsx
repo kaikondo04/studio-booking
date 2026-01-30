@@ -15,6 +15,7 @@ type Booking = {
 export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
+
   const specialKeywords = ['NG', 'ライブ', 'LIVE', 'メンテ', 'メンテナンス']
 
   const year = currentDate.getFullYear()
@@ -25,63 +26,111 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
     Array.from({ length: lastDay.getDate() }, (_, i) => new Date(year, month, i + 1))
   )
 
-  const getEventLabels = (date: Date) => {
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+
+  const getDayBookings = (date: Date) => {
     return bookings.filter(b => {
       const d = new Date(b.start_time)
-      return d.getFullYear() === date.getFullYear() && d.getMonth() === date.getMonth() && d.getDate() === date.getDate() && d.getHours() === 0
-    }).map(e => e.band_name)
-  }
-
-  const getBookingStatus = (date: Date) => {
-    const daysBookings = bookings.filter(b => {
-      const d = new Date(b.start_time)
-      if (d.getHours() === 0) return false
-      return d.getFullYear() === date.getFullYear() && d.getMonth() === date.getMonth() && d.getDate() === date.getDate()
+      return (
+        d.getFullYear() === date.getFullYear() && 
+        d.getMonth() === date.getMonth() && 
+        d.getDate() === date.getDate()
+      )
     })
-    if (daysBookings.length === 0) return 'none'
-    const hasSpecial = daysBookings.some(b => specialKeywords.some(k => b.band_name.includes(k)))
-    return hasSpecial ? 'special' : 'normal'
   }
 
   const filteredBookings = bookings.filter(b => {
     const d = new Date(b.start_time)
-    return d.getFullYear() === selectedDate.getFullYear() && d.getMonth() === selectedDate.getMonth() && d.getDate() === selectedDate.getDate()
+    return (
+      d.getFullYear() === selectedDate.getFullYear() && 
+      d.getMonth() === selectedDate.getMonth() && 
+      d.getDate() === selectedDate.getDate()
+    )
   })
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4 bg-gray-100 p-4 rounded-xl">
-        <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="text-gray-600 font-bold p-2">◀</button>
-        <h2 className="text-xl font-bold text-black">{year}年 {month + 1}月</h2>
-        <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="text-gray-600 font-bold p-2">▶</button>
+      {/* カレンダーヘッダー */}
+      <div className="flex justify-between items-center mb-2 bg-gray-100 p-2 rounded-xl sticky top-0 z-20 shadow-sm">
+        <button onClick={prevMonth} className="text-gray-600 font-bold p-2 px-4">◀</button>
+        <h2 className="text-lg font-bold text-black">
+          {year}年 {month + 1}月
+        </h2>
+        <button onClick={nextMonth} className="text-gray-600 font-bold p-2 px-4">▶</button>
       </div>
-      <div className="grid grid-cols-7 gap-1 mb-8 text-center">
-        {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => <div key={i} className={`text-xs font-bold ${i===0?'text-red-500':i===6?'text-blue-500':'text-gray-500'}`}>{d}</div>)}
+
+      {/* 曜日ヘッダー */}
+      <div className="grid grid-cols-7 gap-px mb-1 text-center border-b pb-2">
+        {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
+          <div key={i} className={`text-xs font-bold ${i===0?'text-red-500':i===6?'text-blue-500':'text-gray-400'}`}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* カレンダー本体 */}
+      <div className="grid grid-cols-7 gap-1 mb-8">
         {days.map((date, i) => {
-          if (!date) return <div key={i}></div>
+          if (!date) return <div key={i} className="min-h-[110px]"></div>
+
           const isSelected = date.toDateString() === selectedDate.toDateString()
           const isToday = date.toDateString() === new Date().toDateString()
-          const status = getBookingStatus(date)
-          const labels = getEventLabels(date)
-
+          const dayBookings = getDayBookings(date)
+          
           return (
-            <button key={i} onClick={() => setSelectedDate(date)} className={`h-16 rounded-lg flex flex-col items-center justify-start pt-1 relative transition overflow-hidden ${isSelected ? 'bg-black text-white shadow-lg scale-105 z-10' : 'bg-white text-black hover:bg-gray-100'} ${isToday && !isSelected ? 'border-2 border-blue-500' : ''}`}>
-              <span className={`text-sm leading-none ${isSelected ? 'font-bold' : ''}`}>{date.getDate()}</span>
-              {labels.length > 0 ? (
-                <div className="flex flex-col w-full px-0.5 mt-0.5 gap-0.5">
-                  {labels.map((l, idx) => <span key={idx} className={`text-[9px] leading-tight truncate font-bold rounded px-0.5 ${isSelected ? 'text-yellow-300' : 'bg-purple-100 text-purple-700'}`}>{l}</span>)}
-                </div>
-              ) : (
-                <>
-                  {status === 'normal' && <span className={`w-1.5 h-1.5 rounded-full mt-2 ${isSelected ? 'bg-white' : 'bg-blue-500'}`}></span>}
-                  {status === 'special' && <span className={`w-2 h-2 rounded-full mt-2 ${isSelected ? 'bg-red-400' : 'bg-red-500'}`}></span>}
-                </>
-              )}
+            <button
+              key={i}
+              onClick={() => setSelectedDate(date)}
+              // ★ ここを変更：高さを min-h-[110px] にして大きく確保
+              className={`
+                min-h-[110px] flex flex-col items-start justify-start p-1 relative transition overflow-hidden rounded-md border
+                ${isSelected ? 'bg-white border-black ring-1 ring-black z-10' : 'bg-white border-gray-100 hover:bg-gray-50'}
+                ${isToday && !isSelected ? 'ring-2 ring-blue-500 z-10' : ''}
+              `}
+            >
+              {/* 日付 */}
+              <span className={`text-xs mb-1 font-bold ${isSelected ? 'text-black' : isToday ? 'text-blue-600' : 'text-gray-500'}`}>
+                {date.getDate()}
+              </span>
+
+              {/* 予約リスト（最大5件まで表示） */}
+              <div className="w-full flex flex-col gap-1">
+                {dayBookings.slice(0, 5).map((booking) => {
+                  const isEvent = new Date(booking.start_time).getHours() === 0
+                  const isSpecial = specialKeywords.some(k => booking.band_name.includes(k))
+
+                  let bgColor = 'bg-blue-100 text-blue-800'
+                  if (isSpecial) bgColor = 'bg-red-100 text-red-800'
+                  if (isEvent) bgColor = 'bg-purple-100 text-purple-800'
+
+                  return (
+                    // ★ ここを変更：文字サイズを text-[10px] にアップ、高さを確保
+                    <span 
+                      key={booking.id} 
+                      className={`text-[10px] px-1 rounded-sm w-full text-left leading-tight py-0.5 font-bold whitespace-nowrap overflow-hidden text-ellipsis ${bgColor}`}
+                    >
+                      {booking.band_name}
+                    </span>
+                  )
+                })}
+                
+                {/* 5件より多い場合 */}
+                {dayBookings.length > 5 && (
+                  <span className="text-[9px] text-gray-400 pl-1 font-bold">
+                    +{dayBookings.length - 5}
+                  </span>
+                )}
+              </div>
             </button>
           )
         })}
       </div>
-      <DailySchedule date={selectedDate.toLocaleDateString('ja-JP', {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'})} bookings={filteredBookings} />
+
+      <DailySchedule 
+        date={selectedDate.toLocaleDateString('ja-JP', {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'})} 
+        bookings={filteredBookings} 
+      />
     </div>
   )
 }

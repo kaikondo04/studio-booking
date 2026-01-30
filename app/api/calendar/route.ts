@@ -1,16 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-// キャッシュを無効化（常に最新のデータを返す）
 export const revalidate = 0
 
 export async function GET() {
-  // 1. Supabaseのクライアントを作成（APIルート内では直接作成するのが確実です）
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const supabase = createClient(supabaseUrl, supabaseKey)
-
-  // 2. 未来の予約と、直近1ヶ月の過去データを取得
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
   
@@ -20,11 +14,8 @@ export async function GET() {
     .gte('end_time', oneMonthAgo.toISOString())
     .order('start_time', { ascending: true })
 
-  if (!bookings) {
-    return new NextResponse('Error', { status: 500 })
-  }
+  if (!bookings) return new NextResponse('Error', { status: 500 })
 
-  // 3. iCalendar形式（.ics）のテキストを作成
   let icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//StudioBooking//JA
@@ -33,63 +24,40 @@ X-WR-TIMEZONE:Asia/Tokyo
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 `
-
-  // 日付をフォーマットする関数 (YYYYMMDDTHHmmSSZ)
-  const formatDate = (isoString: string) => {
-    // UTC時間をそのまま扱う（iPhone側で日本時間に直してくれる）
-    return isoString.replace(/[-:]/g, '').split('.')[0] + 'Z'
-  }
+  // UTC時間をYYYYMMDDTHHmmSSZ形式にする
+  const formatDate = (iso: string) => iso.replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const formatDateOnly = (iso: string) => iso.replace(/-/g, '').split('T')[0]
 
   bookings.forEach((b) => {
-    const start = formatDate(b.start_time)
-    const end = formatDate(b.end_time)
-    
-    // タイトルなどの調整
-    let summary = b.band_name
-    let description = `代表者: ${b.leader}`
-    
-    // 告知のみ(0分)の場合の処理
-    const bStart = new Date(b.start_time)
-    const isEvent = bStart.getHours() === 0 && bStart.getMinutes() === 0
-    
+    const startObj = new Date(b.start_time)
+    const isEvent = startObj.getHours() === 0 && startObj.getMinutes() === 0 // 告知かどうか
+
+    icsContent += `BEGIN:VEVENT
+UID:${b.id}@studio-booking
+DTSTAMP:${formatDate(new Date().toISOString())}
+SUMMARY:${b.band_name}
+DESCRIPTION:代表者: ${b.leader}
+`
     if (isEvent) {
-      // 終日イベントとして扱う
-      const dateOnly = b.start_time.replace(/-/g, '').split('T')[0]
-      // 次の日付を計算（終日指定のため）
+      // 告知の場合は「終日」として扱う
       const nextDay = new Date(b.start_time)
       nextDay.setDate(nextDay.getDate() + 1)
-      const nextDateOnly = nextDay.toISOString().replace(/-/g, '').split('T')[0]
-
-      icsContent += `BEGIN:VEVENT
-UID:${b.id}@studio-booking
-DTSTAMP:${formatDate(new Date().toISOString())}
-DTSTART;VALUE=DATE:${dateOnly}
-DTEND;VALUE=DATE:${nextDateOnly}
-SUMMARY:${summary}
-DESCRIPTION:${description}
-END:VEVENT
+      icsContent += `DTSTART;VALUE=DATE:${formatDateOnly(b.start_time)}
+DTEND;VALUE=DATE:${formatDateOnly(nextDay.toISOString())}
 `
     } else {
-      // 通常の予約
-      icsContent += `BEGIN:VEVENT
-UID:${b.id}@studio-booking
-DTSTAMP:${formatDate(new Date().toISOString())}
-DTSTART:${start}
-DTEND:${end}
-SUMMARY:${summary}
-DESCRIPTION:${description}
-END:VEVENT
+      // 通常予約は時間を指定
+      icsContent += `DTSTART:${formatDate(b.start_time)}
+DTEND:${formatDate(b.end_time)}
 `
     }
+    icsContent += `END:VEVENT
+`
   })
 
   icsContent += `END:VCALENDAR`
 
-  // 4. レスポンスを返す
   return new NextResponse(icsContent, {
-    headers: {
-      'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="studio.ics"',
-    },
+    headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="studio.ics"' },
   })
 }

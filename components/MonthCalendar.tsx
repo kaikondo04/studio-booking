@@ -22,115 +22,152 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
   const month = currentDate.getMonth()
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  const days = Array(firstDay.getDay()).fill(null).concat(
-    Array.from({ length: lastDay.getDate() }, (_, i) => new Date(year, month, i + 1))
-  )
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+  const days = []
+  for (let i = 0; i < firstDay.getDay(); i++) {
+    days.push(null)
+  }
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    days.push(new Date(year, month, i))
+  }
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1))
+  }
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1))
+  }
 
   const getDayBookings = (date: Date) => {
-    return bookings.filter(b => {
-      const d = new Date(b.start_time)
+    return bookings.filter(booking => {
+      const bDate = new Date(booking.start_time)
       return (
-        d.getFullYear() === date.getFullYear() && 
-        d.getMonth() === date.getMonth() && 
-        d.getDate() === date.getDate()
+        bDate.getFullYear() === date.getFullYear() &&
+        bDate.getMonth() === date.getMonth() &&
+        bDate.getDate() === date.getDate()
       )
     })
   }
 
-  const filteredBookings = bookings.filter(b => {
-    const d = new Date(b.start_time)
+  const filteredBookings = bookings.filter((booking) => {
+    const bookingDate = new Date(booking.start_time)
     return (
-      d.getFullYear() === selectedDate.getFullYear() && 
-      d.getMonth() === selectedDate.getMonth() && 
-      d.getDate() === selectedDate.getDate()
+      bookingDate.getFullYear() === selectedDate.getFullYear() &&
+      bookingDate.getMonth() === selectedDate.getMonth() &&
+      bookingDate.getDate() === selectedDate.getDate()
     )
   })
 
+  const dateString = selectedDate.toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short'
+  })
+
   return (
-    <div>
-      {/* カレンダーヘッダー */}
-      <div className="flex justify-between items-center mb-2 bg-gray-100 p-2 rounded-xl sticky top-0 z-20 shadow-sm">
-        <button onClick={prevMonth} className="text-gray-600 font-bold p-2 px-4">◀</button>
-        <h2 className="text-lg font-bold text-black">
+    // 全体を白背景に変更
+    <div className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-200 font-sans">
+      
+      {/* ヘッダー（白背景） */}
+      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
+        <button onClick={prevMonth} className="text-blue-500 font-bold p-2 text-xl">◀</button>
+        <h2 className="text-lg font-bold text-gray-900">
           {year}年 {month + 1}月
         </h2>
-        <button onClick={nextMonth} className="text-gray-600 font-bold p-2 px-4">▶</button>
+        <button onClick={nextMonth} className="text-blue-500 font-bold p-2 text-xl">▶</button>
       </div>
 
-      {/* 曜日ヘッダー */}
-      <div className="grid grid-cols-7 gap-px mb-1 text-center border-b pb-2">
-        {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
-          <div key={i} className={`text-xs font-bold ${i===0?'text-red-500':i===6?'text-blue-500':'text-gray-400'}`}>
-            {d}
+      {/* 曜日（白背景） */}
+      <div className="grid grid-cols-7 text-center bg-white py-2 border-b border-gray-200">
+        {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
+          <div key={i} className={`text-xs font-bold ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
+            {day}
           </div>
         ))}
       </div>
 
-      {/* カレンダー本体 */}
-      <div className="grid grid-cols-7 gap-1 mb-8">
+      {/* カレンダー本体（白背景） */}
+      <div className="grid grid-cols-7 bg-gray-200 gap-[1px] border-b border-gray-200">
         {days.map((date, i) => {
-          if (!date) return <div key={i} className="min-h-[110px]"></div>
+          // 空白マス
+          if (!date) return <div key={i} className="bg-gray-50 min-h-[100px]"></div>
 
-          const isSelected = date.toDateString() === selectedDate.toDateString()
-          const isToday = date.toDateString() === new Date().toDateString()
-          const dayBookings = getDayBookings(date)
+          const isSelected = 
+            date.getFullYear() === selectedDate.getFullYear() &&
+            date.getMonth() === selectedDate.getMonth() &&
+            date.getDate() === selectedDate.getDate()
           
+          const isToday = 
+            date.toDateString() === new Date().toDateString()
+
+          const dayBookings = getDayBookings(date)
+
           return (
             <button
               key={i}
               onClick={() => setSelectedDate(date)}
-              // ★ ここを変更：高さを min-h-[110px] にして大きく確保
               className={`
-                min-h-[110px] flex flex-col items-start justify-start p-1 relative transition overflow-hidden rounded-md border
-                ${isSelected ? 'bg-white border-black ring-1 ring-black z-10' : 'bg-white border-gray-100 hover:bg-gray-50'}
-                ${isToday && !isSelected ? 'ring-2 ring-blue-500 z-10' : ''}
+                min-h-[100px] flex flex-col items-start justify-start p-1 relative transition text-left
+                ${isSelected ? 'bg-blue-50' : 'bg-white'} // 選択時は薄い青、通常は白
+                active:bg-gray-100
               `}
             >
               {/* 日付 */}
-              <span className={`text-xs mb-1 font-bold ${isSelected ? 'text-black' : isToday ? 'text-blue-600' : 'text-gray-500'}`}>
-                {date.getDate()}
-              </span>
-
-              {/* 予約リスト（最大5件まで表示） */}
+              <div className="w-full text-left mb-1">
+                <span className={`
+                  text-sm font-bold inline-block w-7 h-7 leading-7 text-center rounded-full
+                  ${isToday ? 'bg-red-500 text-white' : 'text-gray-700'} // 今日は赤丸、他はグレー文字
+                  ${isSelected && !isToday ? 'bg-blue-500 text-white' : ''} // 選択日は青丸
+                `}>
+                  {date.getDate()}
+                </span>
+              </div>
+              
+              {/* バンド名のバー（TimeTree風デザイン） */}
               <div className="w-full flex flex-col gap-1">
-                {dayBookings.slice(0, 5).map((booking) => {
-                  const isEvent = new Date(booking.start_time).getHours() === 0
-                  const isSpecial = specialKeywords.some(k => booking.band_name.includes(k))
+                {dayBookings.map((booking) => {
+                  const isSpecial = specialKeywords.some(k => booking.band_name.includes(k));
+                  // 白背景に映える色味に変更
+                  const barColor = isSpecial ? 'bg-red-500' : 'bg-green-500'; 
 
-                  let bgColor = 'bg-blue-100 text-blue-800'
-                  if (isSpecial) bgColor = 'bg-red-100 text-red-800'
-                  if (isEvent) bgColor = 'bg-purple-100 text-purple-800'
+                  const displayName = booking.band_name.replace('(LIVE)', '').replace('(NG)', '').trim();
 
                   return (
-                    // ★ ここを変更：文字サイズを text-[10px] にアップ、高さを確保
-                    <span 
-                      key={booking.id} 
-                      className={`text-[10px] px-1 rounded-sm w-full text-left leading-tight py-0.5 font-bold whitespace-nowrap overflow-hidden text-ellipsis ${bgColor}`}
+                    <div 
+                      key={booking.id}
+                      className={`
+                        ${barColor} text-white
+                        text-xs font-bold          // 文字サイズxs、太字
+                        px-2 py-0.5                // 上下の余白
+                        rounded-md                 // 角丸
+                        w-full text-left truncate  // 横幅いっぱい、省略表示
+                        shadow-sm
+                      `}
                     >
-                      {booking.band_name}
-                    </span>
+                      {displayName}
+                    </div>
                   )
                 })}
-                
-                {/* 5件より多い場合 */}
-                {dayBookings.length > 5 && (
-                  <span className="text-[9px] text-gray-400 pl-1 font-bold">
-                    +{dayBookings.length - 5}
-                  </span>
-                )}
               </div>
             </button>
           )
         })}
       </div>
 
-      <DailySchedule 
-        date={selectedDate.toLocaleDateString('ja-JP', {year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'})} 
-        bookings={filteredBookings} 
-      />
+      {/* 下部の詳細表示（ここは既存のまま白背景でOK） */}
+      <div className="p-4 bg-white text-gray-900 min-h-[300px]">
+        <h3 className="font-bold mb-3 text-lg border-b pb-2 border-gray-200">
+          {dateString} の予定
+        </h3>
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <DailySchedule 
+            date={dateString} 
+            bookings={filteredBookings} 
+          />
+        </div>
+      </div>
     </div>
   )
 }

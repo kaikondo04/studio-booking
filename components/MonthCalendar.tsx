@@ -50,7 +50,7 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
     })
   }
 
-  // ★ バーの色を決める関数
+  // バーの色を決める関数
   const getBarColor = (booking: Booking) => {
     const name = booking.band_name
     const start = new Date(booking.start_time)
@@ -63,7 +63,7 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
     if (specialKeywords.some(k => name.includes(k))) {
       return 'bg-red-500 text-white'
     }
-    // 通常の練習は「いつもの青色」
+    // 通常の練習は青
     return 'bg-blue-600 text-white' 
   }
 
@@ -84,7 +84,6 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
   })
 
   return (
-    // 全体を白背景
     <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 font-sans">
       
       {/* ヘッダー */}
@@ -108,7 +107,6 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
       {/* カレンダー本体 */}
       <div className="grid grid-cols-7 bg-gray-200 gap-[1px] border-b border-gray-200">
         {days.map((date, i) => {
-          // 空白マス
           if (!date) return <div key={i} className="bg-gray-50 min-h-[100px]"></div>
 
           const isSelected = 
@@ -145,15 +143,11 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
               {/* バンド名のバー表示エリア */}
               <div className="w-full flex flex-col gap-[1px]">
                 {dayBookings.map((booking) => {
-                  // ★ 文字数を5文字でカット
-                  let displayName = booking.band_name
+                  // ★ 文字制限を解除し、そのまま表示
+                  const displayName = booking.band_name
                     .replace('(LIVE)', '')
                     .replace('(NG)', '')
                     .trim()
-                  
-                  if (displayName.length > 5) {
-                    displayName = displayName.slice(0, 5) // 5文字まで
-                  }
 
                   const barStyle = getBarColor(booking)
 
@@ -162,11 +156,12 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
                       key={booking.id}
                       className={`
                         ${barStyle}
-                        text-[9px] font-bold     // 小さい文字
-                        px-1 py-[2px]            // 余白は最小限
-                        rounded-[2px]            // 角を少し丸く
-                        w-full text-center       // 中央揃え
-                        leading-tight truncate   // はみ出したら...にする
+                        text-[9px] font-bold
+                        px-1 py-[2px]
+                        rounded-[2px]
+                        w-full text-center
+                        leading-tight
+                        overflow-hidden whitespace-nowrap // ★ truncateをやめて、はみ出しをカットする設定に変更
                       `}
                     >
                       {displayName}

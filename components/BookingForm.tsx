@@ -96,6 +96,29 @@ export default function BookingForm() {
     }
   }
 
+  // ★ 3年前のデータを一括削除する裏技関数
+  const handleDeleteOldData = async () => {
+    const threeYearsAgo = new Date()
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3)
+    const targetDate = threeYearsAgo.toISOString()
+
+    if (!window.confirm('⚠️ 本当に3年以上前の古いデータをすべて削除しますか？\n（この操作は取り消せません）')) {
+      return
+    }
+
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .lt('start_time', targetDate)
+
+    if (error) {
+      alert('エラーが発生しました: ' + error.message)
+    } else {
+      alert('🧹 3年以上前のデータの削除が完了しました！')
+      window.location.reload()
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="mb-8 p-6 bg-white border border-gray-300 rounded-xl shadow-sm">
       <h2 className="text-2xl font-bold mb-6 text-black">📝 新規予約 / 告知</h2>
@@ -251,6 +274,18 @@ export default function BookingForm() {
         >
           {type === 'event' ? '告知を登録する' : isAllDay ? '終日で登録する' : '予約する'}
         </button>
+
+        {/* ★ 管理者用・削除ボタン */}
+        <div className="mt-4 pt-6 border-t border-gray-200 text-center">
+          <button 
+            type="button" 
+            onClick={handleDeleteOldData}
+            className="text-xs font-bold text-red-400 hover:text-red-600 underline transition"
+          >
+            [管理者用] 3年以上前の過去データを一括削除
+          </button>
+        </div>
+
       </div>
     </form>
   )

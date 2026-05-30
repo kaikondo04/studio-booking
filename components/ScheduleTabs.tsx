@@ -6,10 +6,10 @@ import DailySchedule from './DailySchedule'
 type Booking = {
   id: number
   band_name: string
-  studio: string
   start_time: string
   end_time: string
   leader: string
+  type: string // ★ここにこれを1行追加するだけ！！！
 }
 
 export default function ScheduleTabs({ bookings }: { bookings: Booking[] }) {

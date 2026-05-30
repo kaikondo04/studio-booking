@@ -2,12 +2,14 @@
 
 import DeleteButton from './DeleteButton'
 
+// ★Bookingの型定義に 'type' (予約の種類) を追加！
 type Booking = {
   id: number
   band_name: string
   start_time: string
   end_time: string
   leader: string
+  type: string // ★ここにSupabaseから取得した 'type' (normal, personal, etc...) が入る
 }
 
 export default function DailySchedule({ date, bookings }: { date: string, bookings: Booking[] }) {
@@ -15,13 +17,13 @@ export default function DailySchedule({ date, bookings }: { date: string, bookin
   const endHour = 22
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i)
 
-  // ★ 告知イベント（00:00）を全て取得
+  // 告知イベント（00:00）を全て取得
   const eventBookings = bookings.filter(b => {
     const start = new Date(b.start_time)
     return start.getHours() === 0 && start.getMinutes() === 0
   })
 
-  // ★ 通常の予約（告知以外）を取得
+  // 通常の予約（告知以外）を取得
   const normalBookings = bookings.filter(b => {
     const start = new Date(b.start_time)
     return !(start.getHours() === 0 && start.getMinutes() === 0)
@@ -62,19 +64,19 @@ export default function DailySchedule({ date, bookings }: { date: string, bookin
         </div>
       )}
 
-      {/* ★ タイムライン全体（ここを基準に絶対配置する） */}
+      {/* タイムライン全体（ここを基準に絶対配置する） */}
       <div className="relative">
         
-        {/* ① 背景のグリッド線（時間は今まで通り描画するだけ！） */}
+        {/* ① 背景のグリッド線 */}
         <div className="divide-y divide-gray-200">
           {hours.map((hour) => (
-            <div key={hour} className="flex bg-white h-24">
-              <div className="w-16 flex-shrink-0 border-r border-gray-100 text-gray-400 font-mono text-xs flex flex-col items-center justify-start pt-2 bg-gray-50 z-20">
+            <div key={hour} className="flex bg-white h-24 relative z-0">
+              <div className="w-16 flex-shrink-0 border-r border-gray-100 text-gray-400 font-mono text-xs flex flex-col items-center justify-start pt-2 bg-gray-50">
                 <span>{hour.toString().padStart(2, '0')}:00</span>
               </div>
-              <div className="flex-grow relative w-full">
+              <div className="flex-grow relative w-full pointer-events-none">
                 {/* 30分の点線 */}
-                <div className="absolute top-1/2 left-0 w-full border-t border-dashed border-gray-100 pointer-events-none"></div>
+                <div className="absolute top-1/2 left-0 w-full border-t border-dashed border-gray-100"></div>
               </div>
             </div>
           ))}
@@ -95,23 +97,27 @@ export default function DailySchedule({ date, bookings }: { date: string, bookin
             const visualStart = Math.max(startMins, timelineStartMins)
             const durationMins = endMins - visualStart
 
-            // ★ 1時間(60分) ＝ Tailwindの h-24（6rem）として計算
-            // 例：開始から90分ズレていれば top: 9rem。長さが60分なら height: 6rem。
+            // 1時間(60分) ＝ Tailwindの h-24（6rem）として計算
             const topRem = ((visualStart - timelineStartMins) / 60) * 6
             const heightRem = (durationMins / 60) * 6
+            
             const isSpecial = isSpecialBooking(booking.band_name)
+
+            // ★ ここが超重要！色分けの判断基準を変更する
+            // 名前で判断するのをやめて、裏側に保存された 'type' (ボタンの種類) で判断する！
+            const isPersonal = booking.type === 'personal'
 
             return (
               <div 
                 key={booking.id}
                 className={`
                   absolute left-1 right-1 rounded-md border overflow-hidden shadow-sm z-10 block transition-all
-                  ${isSpecial ? 'bg-red-100 border-red-400' : booking.band_name === '個人練' ? 'bg-green-50 border-green-300' : 'bg-blue-50 border-blue-200'}
+                  ${isSpecial ? 'bg-red-100 border-red-400' : isPersonal ? 'bg-green-50 border-green-300' : 'bg-blue-50 border-blue-200'}
                 `}
                 style={{ top: `${topRem}rem`, height: `${heightRem}rem` }}
               >
                 <div className="p-1.5 h-full relative leading-tight overflow-hidden">
-                  <div className={`font-bold text-xs mb-0.5 flex items-center gap-1 ${isSpecial ? 'text-red-700' : booking.band_name === '個人練' ? 'text-green-700' : 'text-blue-700'}`}>
+                  <div className={`font-bold text-xs mb-0.5 flex items-center gap-1 ${isSpecial ? 'text-red-700' : isPersonal ? 'text-green-700' : 'text-blue-700'}`}>
                     {formatTime(booking.start_time)}〜{formatTime(booking.end_time)}
                   </div>
                   <div className="font-bold text-black text-sm truncate pr-6">

@@ -10,6 +10,7 @@ type Booking = {
   start_time: string
   end_time: string
   leader: string
+  type: string // ★これを必ず追加して！！！
 }
 
 export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {

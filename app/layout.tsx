@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -7,14 +7,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "スタジオ予約",
   description: "軽音学部のスタジオ予約アプリ",
-  // PWA用の設定を追加
   manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
   themeColor: "#ffffff",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

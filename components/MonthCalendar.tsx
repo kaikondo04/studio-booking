@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import DailySchedule from './DailySchedule'
 
 type Booking = {
@@ -10,38 +11,55 @@ type Booking = {
   start_time: string
   end_time: string
   leader: string
-  type: string // ★これを必ず追加して！！！
+  type: string
 }
 
-export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(new Date())
+export default function MonthCalendar({
+  month,
+  bookings,
+}: {
+  month: string
+  bookings: Booking[]
+}) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  // 'YYYY-MM' を数値に分解する
+  const year = Number(month.split('-')[0])
+  const monthIndex = Number(month.split('-')[1]) - 1
+
+  const today = new Date()
+  const isThisMonth = today.getFullYear() === year && today.getMonth() === monthIndex
+
+  // 今月を見ているときは今日、それ以外の月では1日を最初に選んでおく
+  const [selectedDate, setSelectedDate] = useState(
+    isThisMonth ? today : new Date(year, monthIndex, 1)
+  )
 
   const specialKeywords = ['NG', 'ライブ', 'LIVE', 'メンテ', 'メンテナンス']
 
-  const year = currentDate.getFullYear()
-  const month = currentDate.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
+  const firstDay = new Date(year, monthIndex, 1)
+  const lastDay = new Date(year, monthIndex + 1, 0)
 
-  const days = []
+  const days: (Date | null)[] = []
   for (let i = 0; i < firstDay.getDay(); i++) {
     days.push(null)
   }
   for (let i = 1; i <= lastDay.getDate(); i++) {
-    days.push(new Date(year, month, i))
+    days.push(new Date(year, monthIndex, i))
   }
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1))
-  }
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1))
+  // 月を移動する（URLの ?month= を変えて、その月のデータだけ取り直す）
+  const goToMonth = (diff: number) => {
+    const target = new Date(year, monthIndex + diff, 1)
+    const ym = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`
+    startTransition(() => {
+      router.push(`/?month=${ym}`, { scroll: false })
+    })
   }
 
   const getDayBookings = (date: Date) => {
-    return bookings.filter(booking => {
+    return bookings.filter((booking) => {
       const bDate = new Date(booking.start_time)
       return (
         bDate.getFullYear() === date.getFullYear() &&
@@ -51,21 +69,21 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
     })
   }
 
-  // バーの色を決める関数
+  // バーの色を決める関数（登録時の種類で判断する。type が無い古いデータだけ名前で判断）
   const getBarColor = (booking: Booking) => {
-    const name = booking.band_name
+    if (booking.type === 'event') return 'bg-purple-500 text-white'
+    if (booking.type === 'live' || booking.type === 'ng') return 'bg-red-500 text-white'
+    if (booking.type === 'personal') return 'bg-green-600 text-white'
+    if (booking.type === 'normal') return 'bg-blue-600 text-white'
+
     const start = new Date(booking.start_time)
-    
-    // 告知（00:00開始）は紫
     if (start.getHours() === 0 && start.getMinutes() === 0) {
       return 'bg-purple-500 text-white'
     }
-    // NGやライブは赤
-    if (specialKeywords.some(k => name.includes(k))) {
+    if (specialKeywords.some((k) => booking.band_name.includes(k))) {
       return 'bg-red-500 text-white'
     }
-    // 通常の練習は青
-    return 'bg-blue-600 text-white' 
+    return 'bg-blue-600 text-white'
   }
 
   const filteredBookings = bookings.filter((booking) => {
@@ -81,42 +99,59 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    weekday: 'short'
+    weekday: 'short',
   })
 
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 font-sans">
-      
+
       {/* ヘッダー */}
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
-        <button onClick={prevMonth} className="text-blue-600 font-bold p-2 text-xl">◀</button>
+        <button
+          onClick={() => goToMonth(-1)}
+          disabled={isPending}
+          className="text-blue-600 font-bold p-2 text-xl disabled:opacity-30"
+        >
+          ◀
+        </button>
         <h2 className="text-lg font-bold text-gray-900">
-          {year}年 {month + 1}月
+          {year}年 {monthIndex + 1}月
+          {isPending && <span className="ml-2 text-xs font-normal text-gray-400">読み込み中…</span>}
         </h2>
-        <button onClick={nextMonth} className="text-blue-600 font-bold p-2 text-xl">▶</button>
+        <button
+          onClick={() => goToMonth(1)}
+          disabled={isPending}
+          className="text-blue-600 font-bold p-2 text-xl disabled:opacity-30"
+        >
+          ▶
+        </button>
       </div>
 
       {/* 曜日 */}
       <div className="grid grid-cols-7 text-center bg-white py-2 border-b border-gray-200">
         {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
-          <div key={i} className={`text-xs font-bold ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
+          <div
+            key={i}
+            className={`text-xs font-bold ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}
+          >
             {day}
           </div>
         ))}
       </div>
 
       {/* カレンダー本体 */}
-      <div className="grid grid-cols-7 bg-gray-200 gap-[1px] border-b border-gray-200">
+      <div
+        className={`grid grid-cols-7 bg-gray-200 gap-[1px] border-b border-gray-200 transition-opacity ${isPending ? 'opacity-40' : 'opacity-100'}`}
+      >
         {days.map((date, i) => {
           if (!date) return <div key={i} className="bg-gray-50 min-h-[100px]"></div>
 
-          const isSelected = 
+          const isSelected =
             date.getFullYear() === selectedDate.getFullYear() &&
             date.getMonth() === selectedDate.getMonth() &&
             date.getDate() === selectedDate.getDate()
-          
-          const isToday = 
-            date.toDateString() === new Date().toDateString()
+
+          const isToday = date.toDateString() === new Date().toDateString()
 
           const dayBookings = getDayBookings(date)
 
@@ -126,25 +161,26 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
               onClick={() => setSelectedDate(date)}
               className={`
                 min-h-[110px] flex flex-col items-start justify-start pt-1 px-0.5 relative transition
-                ${isSelected ? 'bg-blue-50' : 'bg-white'} 
+                ${isSelected ? 'bg-blue-50' : 'bg-white'}
                 active:bg-gray-100
               `}
             >
               {/* 日付 */}
               <div className="w-full text-center mb-1">
-                <span className={`
-                  text-[10px] font-bold inline-block w-5 h-5 leading-5 rounded-full
-                  ${isToday ? 'bg-red-500 text-white' : 'text-gray-700'}
-                  ${isSelected && !isToday ? 'bg-blue-500 text-white' : ''}
-                `}>
+                <span
+                  className={`
+                    text-[10px] font-bold inline-block w-5 h-5 leading-5 rounded-full
+                    ${isToday ? 'bg-red-500 text-white' : 'text-gray-700'}
+                    ${isSelected && !isToday ? 'bg-blue-500 text-white' : ''}
+                  `}
+                >
                   {date.getDate()}
                 </span>
               </div>
-              
+
               {/* バンド名のバー表示エリア */}
               <div className="w-full flex flex-col gap-[1px]">
                 {dayBookings.map((booking) => {
-                  // ★ 文字制限を解除し、そのまま表示
                   const displayName = booking.band_name
                     .replace('(LIVE)', '')
                     .replace('(NG)', '')
@@ -153,7 +189,7 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
                   const barStyle = getBarColor(booking)
 
                   return (
-                    <div 
+                    <div
                       key={booking.id}
                       className={`
                         ${barStyle}
@@ -162,7 +198,7 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
                         rounded-[2px]
                         w-full text-center
                         leading-tight
-                        overflow-hidden whitespace-nowrap // ★ truncateをやめて、はみ出しをカットする設定に変更
+                        overflow-hidden whitespace-nowrap
                       `}
                     >
                       {displayName}
@@ -181,10 +217,7 @@ export default function MonthCalendar({ bookings }: { bookings: Booking[] }) {
           {dateString} のタイムライン
         </h3>
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <DailySchedule 
-            date={dateString} 
-            bookings={filteredBookings} 
-          />
+          <DailySchedule date={dateString} bookings={filteredBookings} />
         </div>
       </div>
     </div>

@@ -181,10 +181,17 @@ export default function MonthCalendar({
               {/* バンド名のバー表示エリア */}
               <div className="w-full flex flex-col gap-[1px]">
                 {dayBookings.map((booking) => {
-                  const displayName = booking.band_name
+                  let displayName = booking.band_name
                     .replace('(LIVE)', '')
                     .replace('(NG)', '')
                     .trim()
+
+                  // 個人練は誰が入っているかわかるように名前を出す
+                  const isPersonal =
+                    booking.type === 'personal' || booking.band_name === '個人練'
+                  if (isPersonal && booking.leader) {
+                    displayName = booking.leader
+                  }
 
                   const barStyle = getBarColor(booking)
 

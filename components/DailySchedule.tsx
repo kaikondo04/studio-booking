@@ -121,9 +121,11 @@ export default function DailySchedule({ date, bookings }: { date: string, bookin
                     {formatTime(booking.start_time)}〜{formatTime(booking.end_time)}
                   </div>
                   <div className="font-bold text-black text-sm truncate pr-6">
-                    {isSpecial ? '⛔ ' : ''}{booking.band_name}
+                    {isSpecial ? '⛔ ' : ''}{isPersonal ? booking.leader : booking.band_name}
                   </div>
-                  <div className="text-xs text-gray-500 truncate pr-6">{booking.leader}</div>
+                  <div className="text-xs text-gray-500 truncate pr-6">
+                    {isPersonal ? '個人練' : booking.leader}
+                  </div>
                   
                   {/* ゴミ箱ボタンは右上に固定 */}
                   <div className="absolute top-1 right-1 bg-white/50 rounded z-20">
